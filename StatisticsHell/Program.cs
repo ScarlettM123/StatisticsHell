@@ -28,7 +28,7 @@ namespace StatisticsHell
 
             //using System;
 
-            int numSimulations = 10000;
+            int numSimulations = 1000000;
             int attackerDiceCount = 4;
             int defenderDiceCount = 3;
             int attackerArmies = 10;
@@ -36,6 +36,10 @@ namespace StatisticsHell
 
             //int[] probabilityDistribution = new int[attackerArmies];
             Dictionary<int, double> probabilityDistribution = new Dictionary<int, double>();
+            for (int i = -8; i < 11; i++)
+            {
+                probabilityDistribution.Add(i, 0);
+            }
             int wins = 0;
 
             for (int i = 0; i < numSimulations; i++)
@@ -48,11 +52,13 @@ namespace StatisticsHell
                     int[] attackerRolls = RollDice(attackerDiceCount);
                     int[] defenderRolls = RollDice(defenderDiceCount);
 
-                    Array.Sort(attackerRolls, (a, b) => b.CompareTo(a));
-                    Array.Sort(defenderRolls, (a, b) => b.CompareTo(a));
+                    attackerRolls = attackerRolls.OrderByDescending(x => x).ToArray();
+                    defenderRolls = defenderRolls.OrderByDescending(x => x).ToArray();
 
                     for (int j = 0; j < Math.Min(attackerDiceCount, defenderDiceCount); j++)
                     {
+                        if (currentDefenderArmies == 0 || currentAttackerArmies == 0) break;
+
                         if (attackerRolls[j] > defenderRolls[j])
                         {
                             currentDefenderArmies--;
@@ -65,14 +71,8 @@ namespace StatisticsHell
                 }
 
                 int x = currentAttackerArmies - currentDefenderArmies;
-                if(probabilityDistribution.ContainsKey(x))
-                {
-                    probabilityDistribution[x]++;
-                }
-                else
-                {
-                    probabilityDistribution.Add(x, 1);
-                }
+                probabilityDistribution[x]++;
+                
 
                 if (currentDefenderArmies == 0)
                 {
