@@ -1,5 +1,7 @@
 ﻿using MathNet.Numerics.Distributions;
 using MathNet.Numerics.Random;
+using System.Linq;
+
 namespace StatisticsHell
 {
     internal class Program
@@ -26,14 +28,14 @@ namespace StatisticsHell
 
             //using System;
 
-            int numSimulations = 10;
+            int numSimulations = 10000;
             int attackerDiceCount = 4;
             int defenderDiceCount = 3;
             int attackerArmies = 10;
             int defenderArmies = 8;
 
             //int[] probabilityDistribution = new int[attackerArmies];
-            Dictionary<int, int> probabilityDistribution = new Dictionary<int, int>();
+            Dictionary<int, double> probabilityDistribution = new Dictionary<int, double>();
             int wins = 0;
 
             for (int i = 0; i < numSimulations; i++)
@@ -63,22 +65,32 @@ namespace StatisticsHell
                 }
 
                 int x = currentAttackerArmies - currentDefenderArmies;
-                probabilityDistribution[x]++;
+                if(probabilityDistribution.ContainsKey(x))
+                {
+                    probabilityDistribution[x]++;
+                }
+                else
+                {
+                    probabilityDistribution.Add(x, 1);
+                }
 
                 if (currentDefenderArmies == 0)
                 {
                     wins++;
                 }
             }
-
+            foreach(var pair in probabilityDistribution)
+            {
+                probabilityDistribution[pair.Key] = pair.Value / numSimulations;
+            }
             Console.WriteLine("Probability Distribution Table:");
             Console.WriteLine("X\tProbability");
-            int i = 0;
-            foreach (var pair in probabilityDistribution)
+            int a = 0;
+            foreach (var pair in probabilityDistribution.OrderBy(x => x.Key))
             {
-                double probability = (double)pair.Value / numSimulations;
-                Console.WriteLine($"{i - Math.Abs(defenderArmies)}\t{probability:P}"); //might work
-                i++;
+       
+                Console.WriteLine($"{pair.Key}\t{pair.Value:P}"); //might work
+                a++;
             }
 
             Console.WriteLine("\nProbability Distribution Histogram:");
@@ -91,10 +103,10 @@ namespace StatisticsHell
             Console.WriteLine($"Probability of Attacker Winning: {winProbability:P}");
 
             // Comparing with the conventional Risk result
-            double conventionalRiskWinProbability = 0.72; // 72%
+            double conventionalRiskWinProbability = .5833; // 72%
             Console.WriteLine($"Conventional Risk Attacker Win Probability: {conventionalRiskWinProbability:P}");
 
-            double standardDeviation = CalculateStandardDeviation(probabilityDistribution, expectedValue);
+            double standardDeviation = CalculateStandardDeviation(probabilityDistribution, expectedValue, expectedValue);
             Console.WriteLine($"Standard Deviation of X: {standardDeviation}");
         }
 
@@ -109,48 +121,41 @@ namespace StatisticsHell
             return rolls;
         }
 
-        static double CalculateExpectedValue(Dictionary<int, int> probabilityDistribution)
+        static double CalculateExpectedValue(Dictionary<int, double> probabilityDistribution)
         {
             double expectedValue = 0;
-            for (int i = 0; i < probabilityDistribution.Count; i++)
+            foreach(var pair in probabilityDistribution)
             {
-                expectedValue += i * probabilityDistribution.ElementAt(i).Value;
+                expectedValue += pair.Key * pair.Value;
             }
-            return expectedValue / probabilityDistribution.Count;
+            return expectedValue;
         }
 
-        static double CalculateStandardDeviation(Dictionary<int, int> probabilityDistribution, double expectedValue)
+        static double CalculateStandardDeviation(Dictionary<int, double> probabilityDistribution, double expectedValue, double mean)
         {
-            double mean = 0;
-            foreach(var p in probabilityDistribution)
-            {
-                mean += p.Key * p.Value;
-                
-
-            }
+          
 
             //(key - mean)^2 * value(output)  sum all of them then sqrt it 
-            mean = (probabilityDistribution.ElementAt(0).Value + probabilityDistribution.ElementAt(1).Value + probabilityDistribution.ElementAt(2).Value + probabilityDistribution.ElementAt(3))/ probabilityDistribution.Count;
             double sum = 0;
 
-            foreach (var pair in probabilityDistribution)
+            foreach (var pair in probabilityDistribution.OrderBy(x=>x.Key))
             {
-                double deviation =pair.Value- expectedValue;
-                sum += pair.Value * deviation * deviation;   
+                double deviation = Math.Pow((pair.Key - mean), 2) * pair.Value;
+                sum += deviation;   
                 
-                i++;
+              //  i++;
             }
-            return Math.Sqrt(sum / probabilityDistribution.Count);
+            return Math.Sqrt(sum);
         }
 
-        static void DrawHistogram(Dictionary<int, int> probabilityDistribution, int defenderArmies, int numSimulations)
+        static void DrawHistogram(Dictionary<int, double> probabilityDistribution, int defenderArmies, int numSimulations)
         {
-            for (int i = 0; i < probabilityDistribution.Count; i++)
+            foreach(var pair in probabilityDistribution.OrderBy(x => x.Key))
             {
-                int xValue = i - Math.Abs(defenderArmies);
+                int xValue = pair.Key - Math.Abs(defenderArmies);
                 Console.Write($"{xValue,3}: |");
 
-                int barLength = (int)(probabilityDistribution[i] * 100.0 / numSimulations);
+                int barLength = (int)(pair.Value * 100.0 / numSimulations);
                 for (int j = 0; j < barLength; j++)
                 {
                     Console.Write("#");
